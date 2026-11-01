@@ -13,6 +13,7 @@ import Playlists from "./pages/Playlists";
 import History from "./pages/History";
 import Favorites from "./pages/Favorites";
 import Tours from "./pages/Tours";
+import Analytics from "./pages/Analytics";
 
 import { FavoritesProvider } from "./context/FavoritesContext";
 
@@ -22,6 +23,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/analytics" element={<Analytics />} />
           <Route path="/songs" element={<Songs />} />
           <Route path="/artists" element={<Artists />} />
           <Route path="/albums" element={<Albums />} />

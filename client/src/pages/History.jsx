@@ -17,6 +17,7 @@ import { songs } from "../data/musicData";
 
 function History() {
   const [search, setSearch] = useState("");
+
   const [history, setHistory] = useState(() =>
     songs.map((song, index) => ({
       ...song,
@@ -31,16 +32,17 @@ function History() {
     }))
   );
 
-  const filteredHistory = useMemo(
-    () =>
-      history.filter(
-        (song) =>
-          song.title.toLowerCase().includes(search.toLowerCase()) ||
-          song.artist.toLowerCase().includes(search.toLowerCase()) ||
-          song.album.toLowerCase().includes(search.toLowerCase())
-      ),
-    [history, search]
-  );
+  const filteredHistory = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    if (!query) return history;
+
+    return history.filter((song) =>
+      [song.title, song.artist, song.album, song.genre].some((value) =>
+        String(value || "").toLowerCase().includes(query)
+      )
+    );
+  }, [history, search]);
 
   const clearHistory = () => {
     const confirmed = window.confirm(
@@ -99,7 +101,7 @@ function History() {
             <div className="flex flex-1 items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4">
               <Search
                 size={20}
-                className="text-gray-400"
+                className="shrink-0 text-gray-400"
               />
 
               <input
@@ -122,15 +124,34 @@ function History() {
             </button>
           </div>
 
+          {/* History Count */}
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-semibold">
+              Recently Played
+            </h2>
+
+            <p className="text-sm text-gray-400">
+              {filteredHistory.length} songs
+            </p>
+          </div>
+
           {/* History List */}
           {filteredHistory.length > 0 ? (
             <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#15111f]">
+              {/* Table Header */}
               <div className="grid grid-cols-[1fr_auto] border-b border-white/10 px-5 py-4 text-sm text-gray-400 sm:grid-cols-[1fr_150px_120px]">
                 <span>SONG</span>
-                <span className="hidden sm:block">ALBUM</span>
-                <span className="text-right">PLAYED</span>
+
+                <span className="hidden sm:block">
+                  ALBUM
+                </span>
+
+                <span className="text-right">
+                  PLAYED
+                </span>
               </div>
 
+              {/* Songs */}
               <div className="divide-y divide-white/5">
                 {filteredHistory.map((song) => (
                   <div
@@ -139,31 +160,37 @@ function History() {
                   >
                     {/* Song Information */}
                     <div className="flex min-w-0 items-center gap-3">
-                      <img
-                        src={song.image}
-                        alt={song.title}
-                        className="h-12 w-12 rounded-lg object-cover"
-                      />
+                      {song.image ? (
+                        <img
+                          src={song.image}
+                          alt={song.title || "Song artwork"}
+                          className="h-12 w-12 shrink-0 rounded-lg object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-purple-500/20">
+                          <Music2 className="text-purple-400" />
+                        </div>
+                      )}
 
                       <div className="min-w-0">
                         <p className="truncate font-medium">
-                          {song.title}
+                          {song.title || "Unknown Song"}
                         </p>
 
                         <p className="truncate text-sm text-gray-400">
-                          {song.artist}
+                          {song.artist || "Unknown Artist"}
                         </p>
                       </div>
 
                       <button
                         type="button"
-                        aria-label={`Play ${song.title}`}
+                        aria-label={`Play ${song.title || "song"}`}
                         onClick={() =>
                           alert(
                             "Demo interface: audio playback is not connected yet."
                           )
                         }
-                        className="ml-auto rounded-full p-2 text-purple-400 hover:bg-purple-500/10"
+                        className="ml-auto rounded-full p-2 text-purple-400 transition hover:bg-purple-500/10"
                       >
                         <Play size={18} />
                       </button>
@@ -177,7 +204,7 @@ function History() {
                       />
 
                       <span className="truncate">
-                        {song.album}
+                        {song.album || "Unknown Album"}
                       </span>
                     </div>
 
@@ -190,7 +217,7 @@ function History() {
 
                       <span className="flex items-center gap-1 sm:hidden">
                         <CalendarDays size={12} />
-                        {song.genre}
+                        {song.genre || "Music"}
                       </span>
                     </div>
                   </div>
@@ -198,6 +225,7 @@ function History() {
               </div>
             </div>
           ) : (
+            /* Empty State */
             <div className="rounded-2xl border border-white/10 bg-white/5 py-16 text-center">
               <HistoryIcon
                 size={48}
@@ -220,7 +248,7 @@ function History() {
                 <button
                   type="button"
                   onClick={() => setSearch("")}
-                  className="mt-5 rounded-lg bg-purple-600 px-5 py-2 hover:bg-purple-500"
+                  className="mt-5 rounded-lg bg-purple-600 px-5 py-2 transition hover:bg-purple-500"
                 >
                   Clear Search
                 </button>

@@ -1,287 +1,250 @@
-import Sidebar from "../components/Sidebar";
-import Topbar from "../components/Topbar";
-import SongCard from "../components/SongCard";
-import ArtistCard from "../components/ArtistCard";
-import PlaylistCard from "../components/PlaylistCard";
-import MusicPlayer from "../components/MusicPlayer";
-
+import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
-  TrendingUp,
-  Headphones,
   Music2,
   Users,
+  Headphones,
+  TrendingUp,
+  Play,
 } from "lucide-react";
 
-// Popular songs
-const songs = [
-  {
-    title: "Blinding Lights",
-    artist: "The Weeknd",
-    image:
-      "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400",
-  },
-  {
-    title: "Starboy",
-    artist: "The Weeknd",
-    image:
-      "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=400",
-  },
-  {
-    title: "Night Changes",
-    artist: "One Direction",
-    image:
-      "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400",
-  },
-  {
-    title: "Levitating",
-    artist: "Dua Lipa",
-    image:
-      "https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=400",
-  },
-];
+import Sidebar from "../components/Sidebar";
+import Topbar from "../components/Topbar";
+import MusicPlayer from "../components/MusicPlayer";
 
-// Popular artists
-const artists = [
-  {
-    name: "The Weeknd",
-    followers: "95M monthly listeners",
-    verified: true,
-    image:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400",
-  },
-  {
-    name: "Taylor Swift",
-    followers: "88M monthly listeners",
-    verified: true,
-    image:
-      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400",
-  },
-  {
-    name: "Drake",
-    followers: "76M monthly listeners",
-    verified: true,
-    image:
-      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400",
-  },
-  {
-    name: "Dua Lipa",
-    followers: "62M monthly listeners",
-    verified: true,
-    image:
-      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400",
-  },
-];
-
-// Featured playlists
-const playlists = [
-  {
-    name: "Daily Mix",
-    totalSongs: 50,
-    image:
-      "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400",
-  },
-  {
-    name: "Chill Vibes",
-    totalSongs: 32,
-    image:
-      "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=400",
-  },
-  {
-    name: "Workout Hits",
-    totalSongs: 45,
-    image:
-      "https://images.unsplash.com/photo-1534258936925-c58bed479fcb?w=400",
-  },
-  {
-    name: "Late Night",
-    totalSongs: 28,
-    image:
-      "https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=400",
-  },
-];
+import { songs, artists, playlists } from "../data/musicData";
 
 function Dashboard() {
+  const navigate = useNavigate();
+
   return (
-    <div className="min-h-screen bg-[#0b0b0f] text-white">
+    <div className="min-h-screen bg-[#0b0914] text-white">
       <div className="flex">
-        {/* Sidebar */}
         <Sidebar />
 
-        {/* Main Content */}
-        <main className="min-w-0 flex-1">
+        <main className="min-w-0 flex-1 pb-32">
           <Topbar />
 
-          <div className="space-y-10 px-8 py-8 pb-32">
-            {/* Welcome Banner */}
-            <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-purple-800 via-purple-600 to-pink-600 p-8 md:p-10">
-              <div className="relative z-10 max-w-xl">
-                <p className="mb-3 text-sm font-semibold uppercase tracking-widest text-purple-100">
-                  Your personal music space
-                </p>
+          <div className="p-8">
 
-                <h1 className="text-3xl font-extrabold leading-tight md:text-5xl">
-                  Music for every mood.
-                  <br />
-                  Vibes for every moment.
-                </h1>
+          {/* Welcome Banner */}
+          <section className="mb-10 rounded-3xl bg-gradient-to-r from-purple-700 to-pink-600 p-10">
+            <p className="mb-3 text-sm font-semibold uppercase tracking-widest text-purple-200">
+              Welcome to SoundWave
+            </p>
 
-                <p className="mt-4 max-w-md text-sm leading-6 text-purple-100 md:text-base">
-                  Explore your favourite tracks, discover new artists,
-                  and create the perfect soundtrack for your day.
-                </p>
+            <h1 className="mb-4 text-4xl font-bold md:text-5xl">
+              Feel the Music.
+              <br />
+              Live the Moment.
+            </h1>
 
-                <button className="mt-6 flex items-center gap-2 rounded-xl bg-white px-6 py-3 font-semibold text-purple-700 transition hover:bg-purple-100">
-                  Explore Music
-                  <ArrowRight size={18} />
-                </button>
-              </div>
+            <p className="mb-6 max-w-lg text-purple-100">
+              Discover your favourite songs, explore new artists
+              and enjoy music that matches your mood.
+            </p>
 
-              <div className="pointer-events-none absolute -right-12 -top-20 h-72 w-72 rounded-full border-[35px] border-white/10" />
+            <button
+              onClick={() => navigate("/songs")}
+              className="flex items-center gap-2 rounded-xl bg-white px-6 py-3 font-semibold text-purple-700 hover:bg-purple-100"
+            >
+              Explore Music <ArrowRight size={18} />
+            </button>
+          </section>
 
-              <div className="pointer-events-none absolute -bottom-28 right-20 h-64 w-64 rounded-full bg-pink-400/20 blur-3xl" />
-            </section>
+          {/* Statistics */}
+          <section className="mb-10 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
 
-            {/* Statistics */}
-            <section className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-2xl border border-white/10 bg-[#17171f] p-5">
-                <div className="flex items-center justify-between">
-                  <div className="rounded-xl bg-purple-500/15 p-3 text-purple-400">
-                    <Headphones size={23} />
-                  </div>
-                  <TrendingUp size={18} className="text-green-400" />
-                </div>
+            {[
+              {
+                title: "Total Songs",
+                value: songs.length,
+                icon: Music2,
+              },
+              {
+                title: "Total Artists",
+                value: artists.length,
+                icon: Users,
+              },
+              {
+                title: "Playlists",
+                value: playlists.length,
+                icon: Headphones,
+              },
+              {
+                title: "Music Experience",
+                value: "24/7",
+                icon: TrendingUp,
+              },
+            ].map((item) => {
+              const Icon = item.icon;
 
-                <p className="mt-5 text-sm text-gray-400">
-                  Total Listening Time
-                </p>
-                <h2 className="mt-1 text-3xl font-bold">128 hrs</h2>
-                <p className="mt-2 text-xs text-green-400">
-                  +12% this month
-                </p>
-              </div>
+              return (
+                <div
+                  key={item.title}
+                  className="rounded-2xl border border-white/10 bg-[#15111f] p-6"
+                >
+                  <Icon className="mb-4 text-purple-400" size={28} />
 
-              <div className="rounded-2xl border border-white/10 bg-[#17171f] p-5">
-                <div className="rounded-xl bg-pink-500/15 p-3 text-pink-400 w-fit">
-                  <Music2 size={23} />
-                </div>
+                  <h2 className="text-3xl font-bold">
+                    {item.value}
+                  </h2>
 
-                <p className="mt-5 text-sm text-gray-400">
-                  Songs Played
-                </p>
-                <h2 className="mt-1 text-3xl font-bold">1,284</h2>
-                <p className="mt-2 text-xs text-green-400">
-                  +8% this month
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-[#17171f] p-5">
-                <div className="rounded-xl bg-blue-500/15 p-3 text-blue-400 w-fit">
-                  <Users size={23} />
-                </div>
-
-                <p className="mt-5 text-sm text-gray-400">
-                  Followed Artists
-                </p>
-                <h2 className="mt-1 text-3xl font-bold">56</h2>
-                <p className="mt-2 text-xs text-green-400">
-                  +4 new artists
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-[#17171f] p-5">
-                <div className="rounded-xl bg-orange-500/15 p-3 text-orange-400 w-fit">
-                  <TrendingUp size={23} />
-                </div>
-
-                <p className="mt-5 text-sm text-gray-400">
-                  Favourite Genre
-                </p>
-                <h2 className="mt-1 text-3xl font-bold">Pop</h2>
-                <p className="mt-2 text-xs text-gray-400">
-                  Your most played genre
-                </p>
-              </div>
-            </section>
-
-            {/* Popular Songs */}
-            <section>
-              <div className="mb-5 flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold">Popular Songs</h2>
                   <p className="mt-1 text-sm text-gray-400">
-                    Tracks you might love
+                    {item.title}
                   </p>
                 </div>
+              );
+            })}
+          </section>
 
-                <button className="flex items-center gap-2 text-sm text-purple-400 transition hover:text-purple-300">
-                  View All <ArrowRight size={16} />
-                </button>
+          {/* Popular Songs */}
+          <section className="mb-12">
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <p className="text-sm text-purple-400">TRENDING NOW</p>
+                <h2 className="mt-1 text-2xl font-bold">
+                  Popular Songs
+                </h2>
               </div>
 
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-                {songs.map((song) => (
-                  <SongCard key={song.title} song={song} />
-                ))}
-              </div>
-            </section>
+              <button
+                onClick={() => navigate("/songs")}
+                className="flex items-center gap-2 text-purple-400 hover:text-purple-300"
+              >
+                View All <ArrowRight size={16} />
+              </button>
+            </div>
 
-            {/* Popular Artists */}
-            <section>
-              <div className="mb-5 flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold">Popular Artists</h2>
-                  <p className="mt-1 text-sm text-gray-400">
-                    Artists worth listening to
-                  </p>
-                </div>
-
-                <button className="flex items-center gap-2 text-sm text-purple-400 transition hover:text-purple-300">
-                  View All <ArrowRight size={16} />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-                {artists.map((artist) => (
-                  <ArtistCard key={artist.name} artist={artist} />
-                ))}
-              </div>
-            </section>
-
-            {/* Featured Playlists */}
-            <section>
-              <div className="mb-5 flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold">Featured Playlists</h2>
-                  <p className="mt-1 text-sm text-gray-400">
-                    The perfect soundtrack for you
-                  </p>
-                </div>
-
-                <button className="flex items-center gap-2 text-sm text-purple-400 transition hover:text-purple-300">
-                  View All <ArrowRight size={16} />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-                {playlists.map((playlist) => (
-                  <PlaylistCard
-                    key={playlist.name}
-                    playlist={playlist}
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+              {songs.slice(0, 4).map((song) => (
+                <div
+                  key={song.id}
+                  className="group overflow-hidden rounded-2xl border border-white/10 bg-[#15111f] p-4 transition hover:border-purple-500/50"
+                >
+                  <img
+                    src={song.image}
+                    alt={song.title}
+                    className="mb-4 aspect-square w-full rounded-xl object-cover"
                   />
-                ))}
-              </div>
-            </section>
 
-            {/* Footer */}
-            <footer className="border-t border-white/10 pt-6 text-center text-sm text-gray-500">
-              © 2026 SoundWave Music Dashboard. Made for music lovers.
-            </footer>
+                  <h3 className="truncate font-semibold">
+                    {song.title}
+                  </h3>
+
+                  <p className="mt-1 text-sm text-gray-400">
+                    {song.artist}
+                  </p>
+
+                  <button
+                    onClick={() =>
+                      alert("Demo interface: Audio playback is not connected yet.")
+                    }
+                    className="mt-4 flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm hover:bg-purple-500"
+                  >
+                    <Play size={15} fill="currentColor" />
+                    Play
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Popular Artists */}
+          <section className="mb-12">
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <p className="text-sm text-purple-400">DISCOVER</p>
+                <h2 className="mt-1 text-2xl font-bold">
+                  Popular Artists
+                </h2>
+              </div>
+
+              <button
+                onClick={() => navigate("/artists")}
+                className="flex items-center gap-2 text-purple-400 hover:text-purple-300"
+              >
+                View All <ArrowRight size={16} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 xl:grid-cols-5">
+              {artists.slice(0, 5).map((artist) => (
+                <div
+                  key={artist.id}
+                  className="rounded-2xl border border-white/10 bg-[#15111f] p-4 text-center"
+                >
+                  <img
+                    src={artist.image}
+                    alt={artist.name}
+                    className="mx-auto mb-4 h-28 w-28 rounded-full object-cover"
+                  />
+
+                  <h3 className="font-semibold">{artist.name}</h3>
+
+                  <p className="mt-1 text-xs text-gray-400">
+                    {artist.followers}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Featured Playlists */}
+          <section className="mb-12">
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <p className="text-sm text-purple-400">MADE FOR YOU</p>
+                <h2 className="mt-1 text-2xl font-bold">
+                  Featured Playlists
+                </h2>
+              </div>
+
+              <button
+                onClick={() => navigate("/playlists")}
+                className="flex items-center gap-2 text-purple-400 hover:text-purple-300"
+              >
+                View All <ArrowRight size={16} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+              {playlists.map((playlist) => (
+                <div
+                  key={playlist.id}
+                  className="rounded-2xl border border-white/10 bg-[#15111f] p-4"
+                >
+                  <img
+                    src={playlist.image}
+                    alt={playlist.name}
+                    className="mb-4 aspect-square w-full rounded-xl object-cover"
+                  />
+
+                  <h3 className="font-semibold">{playlist.name}</h3>
+
+                  <p className="mt-1 text-sm text-gray-400">
+                    {playlist.totalSongs} Songs
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Footer */}
+          <footer className="border-t border-white/10 pt-6 text-center">
+            <p className="text-sm text-gray-500">
+              © 2026 SoundWave. All rights reserved.
+            </p>
+
+            <p className="mt-2 text-xs text-gray-600">
+              Your Music. Your Mood. Your World.
+            </p>
+          </footer>
+
           </div>
         </main>
       </div>
 
-      {/* Fixed Music Player */}
       <MusicPlayer />
     </div>
   );

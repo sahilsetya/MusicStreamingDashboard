@@ -1,0 +1,22 @@
+# Dependencies and generated build output
+**/node_modules/
+**/dist/
+**/dist-ssr/
+
+# Local environment and credentials
+.env
+.env.*
+!.env.example
+**/*.pem
+**/*.key
+**/credentials.json
+**/credentials.*
+**/secrets/
+
+# Logs and local files
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+*.local
+.DS_Store

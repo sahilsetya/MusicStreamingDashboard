@@ -1,7 +1,13 @@
-import { Play, MoreHorizontal, Heart } from "lucide-react";
+import {
+  Play,
+  MoreHorizontal,
+  Heart,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { useFavorites } from "../context/FavoritesContext";
 
-function SongCard({ song }) {
+function SongCard({ song, onEdit, onDelete }) {
   const { toggleFavorite, isFavorite } = useFavorites();
 
   const liked = isFavorite(song.id);
@@ -37,10 +43,40 @@ function SongCard({ song }) {
           <p className="mt-1 truncate text-sm text-gray-400">
             {song.artist}
           </p>
+
+          {song.genre && (
+            <p className="mt-2 text-xs text-purple-300">
+              {song.genre}
+            </p>
+          )}
         </div>
 
         {/* Favourite Button */}
         <div className="flex shrink-0 items-center gap-1">
+          {onEdit && (
+            <button
+              type="button"
+              onClick={() => onEdit(song)}
+              aria-label={`Edit ${song.title}`}
+              title="Edit song"
+              className="rounded-lg p-1 text-gray-500 transition hover:text-purple-400"
+            >
+              <Pencil size={17} />
+            </button>
+          )}
+
+          {onDelete && (
+            <button
+              type="button"
+              onClick={() => onDelete(song)}
+              aria-label={`Delete ${song.title}`}
+              title="Delete song"
+              className="rounded-lg p-1 text-gray-500 transition hover:text-red-400"
+            >
+              <Trash2 size={17} />
+            </button>
+          )}
+
           <button
             onClick={() => toggleFavorite(song)}
             aria-label={

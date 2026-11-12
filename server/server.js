@@ -1,134 +1,258 @@
+require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
+const http = require("http");
+const mongoose = require("mongoose");
+const { Server } = require("socket.io");
+
+const connectDB = require("./config/db");
+const Song = require("./models/Song");
+
+const authRoutes = require("./routes/authRoutes");
+const { protect, adminOnly } = require("./middleware/authMiddleware");
 
 const app = express();
-const PORT = 5000;
+const server = http.createServer(app);
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+const profileRoutes = require("./routes/profileRoutes");
 
-// Temporary Songs Database
-let songs = [
-    { id: 1, title: "Tum Hi Ho", artist: "Arijit Singh", genre: "Romantic" },
-    { id: 2, title: "Blinding Lights", artist: "The Weeknd", genre: "Pop" },
-    { id: 3, title: "Starboy", artist: "The Weeknd", genre: "R&B" }
+const PORT = process.env.PORT || 5000;
+
+// Allowed frontend origins
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
 ];
 
-// Home Route
+// Socket.IO Setup
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
+  },
+});
+
+app.use("/api/profiles", profileRoutes);
+
+// Make io available in routes
+app.set("io", io);
+
+// Socket Connection
+io.on("connection", (socket) => {
+  console.log("Socket Connected:", socket.id);
+
+  socket.on("disconnect", () => {
+    console.log("Socket Disconnected:", socket.id);
+  });
+});
+
+// Express Middleware
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  })
+);
+
+app.use(express.json());
+
+// Root Route
 app.get("/", (req, res) => {
-    res.status(200).json({
-        message: "Music Streaming API is running!"
-    });
+  res.status(200).json({
+    message: "Music Streaming API is running!",
+  });
 });
 
-// GET - All Songs
-app.get("/api/songs", (req, res) => {
+// Auth Routes
+app.use("/api/auth", authRoutes);
+
+// GET All Songs
+app.get("/api/songs", async (req, res) => {
+  try {
+    const songs = await Song.find().sort({ createdAt: -1 });
+
     res.status(200).json(songs);
+  } catch (error) {
+    console.error("Get Songs Error:", error.message);
+
+    res.status(500).json({
+      message: error.message,
+    });
+  }
 });
 
-// GET - Song By ID
-app.get("/api/songs/:id", (req, res) => {
-    const id = Number(req.params.id);
+// GET Single Song
+app.get("/api/songs/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
 
-    const song = songs.find(item => item.id === id);
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        message: "Invalid Song ID",
+      });
+    }
+
+    const song = await Song.findById(id);
 
     if (!song) {
-        return res.status(404).json({
-            message: "Song not found"
-        });
+      return res.status(404).json({
+        message: "Song not found",
+      });
     }
 
     res.status(200).json(song);
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
 });
 
-// POST - Create New Song
-app.post("/api/songs", (req, res) => {
-    const { title, artist, genre } = req.body || {};
+// CREATE Song (Admin Only)
+app.post("/api/songs", protect, adminOnly, async (req, res) => {
+  try {
+    const song = await Song.create(req.body);
 
-    if (!title || !artist || !genre) {
-        return res.status(400).json({
-            message: "Title, artist and genre are required"
-        });
-    }
+    // Real-time notification
+    io.emit("song:created", {
+      message: `New song added: ${song.title}`,
+      songId: song._id,
+      title: song.title,
+      timestamp: new Date(),
+    });
 
-    const newSong = {
-        id: songs.length
-            ? Math.max(...songs.map(item => item.id)) + 1
-            : 1,
-        title,
-        artist,
-        genre
-    };
-
-    songs.push(newSong);
+    console.log("Song Created:", song.title);
+    console.log("Notification Sent: song:created");
 
     res.status(201).json({
-        message: "Song created successfully",
-        song: newSong
+      message: "Song created successfully",
+      song,
     });
+  } catch (error) {
+    res.status(400).json({
+      message: error.message,
+    });
+  }
 });
 
-// PUT - Update Song
-app.put("/api/songs/:id", (req, res) => {
-    const id = Number(req.params.id);
+// UPDATE Song (Admin Only)
+app.put("/api/songs/:id", protect, adminOnly, async (req, res) => {
+  try {
+    const { id } = req.params;
 
-    const song = songs.find(item => item.id === id);
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        message: "Invalid Song ID",
+      });
+    }
+
+    const song = await Song.findByIdAndUpdate(id, req.body, {
+      new: true,
+      runValidators: true,
+    });
 
     if (!song) {
-        return res.status(404).json({
-            message: "Song not found"
-        });
+      return res.status(404).json({
+        message: "Song not found",
+      });
     }
 
-    const { title, artist, genre } = req.body || {};
+    // Real-time notification
+    io.emit("song:updated", {
+      message: `Song updated: ${song.title}`,
+      songId: song._id,
+      title: song.title,
+      timestamp: new Date(),
+    });
 
-    if (title !== undefined) song.title = title;
-    if (artist !== undefined) song.artist = artist;
-    if (genre !== undefined) song.genre = genre;
+    console.log("Song Updated:", song.title);
+    console.log("Notification Sent: song:updated");
 
     res.status(200).json({
-        message: "Song updated successfully",
-        song
+      message: "Song updated successfully",
+      song,
     });
+  } catch (error) {
+    res.status(400).json({
+      message: error.message,
+    });
+  }
 });
 
-// DELETE - Remove Song
-app.delete("/api/songs/:id", (req, res) => {
-    const id = Number(req.params.id);
+// DELETE Song (Admin Only)
+app.delete("/api/songs/:id", protect, adminOnly, async (req, res) => {
+  try {
+    const { id } = req.params;
 
-    const exists = songs.some(item => item.id === id);
-
-    if (!exists) {
-        return res.status(404).json({
-            message: "Song not found"
-        });
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        message: "Invalid Song ID",
+      });
     }
 
-    songs = songs.filter(item => item.id !== id);
+    const song = await Song.findByIdAndDelete(id);
+
+    if (!song) {
+      return res.status(404).json({
+        message: "Song not found",
+      });
+    }
+
+    // Real-time notification
+    io.emit("song:deleted", {
+      message: `Song deleted: ${song.title}`,
+      songId: song._id,
+      title: song.title,
+      timestamp: new Date(),
+    });
+
+    console.log("Song Deleted:", song.title);
+    console.log("Notification Sent: song:deleted");
 
     res.status(200).json({
-        message: "Song deleted successfully"
+      message: "Song deleted successfully",
     });
+  } catch (error) {
+    res.status(400).json({
+      message: error.message,
+    });
+  }
 });
 
-// Invalid Route Handling
+// Admin Route
+app.get("/api/admin", protect, adminOnly, (req, res) => {
+  res.status(200).json({
+    message: "Welcome Admin!",
+    user: req.user,
+  });
+});
+
+// 404 Handler
 app.use((req, res) => {
-    res.status(404).json({
-        message: "API route not found"
-    });
+  res.status(404).json({
+    message: "API route not found",
+  });
 });
 
-// Error Handling Middleware
+// Error Handler
 app.use((err, req, res, next) => {
-    console.error(err.stack);
+  console.error(err.stack);
 
-    res.status(500).json({
-        message: "Internal Server Error"
-    });
+  res.status(500).json({
+    message: "Internal Server Error",
+  });
 });
 
 // Start Server
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-});
+connectDB()
+  .then(() => {
+    server.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  })
+  .catch((error) => {
+    console.error("Server startup failed:", error.message);
+    process.exit(1);
+  });

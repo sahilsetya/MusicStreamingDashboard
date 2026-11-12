@@ -16,52 +16,76 @@ import SongCard from "../components/SongCard";
 import MusicPlayer from "../components/MusicPlayer";
 
 const API_URL = "http://localhost:5000/api/songs";
-const EMPTY_FORM = { title: "", artist: "", genre: "" };
 
-async function requestApi(url, options) {
+const EMPTY_FORM = {
+  title: "",
+  artist: "",
+  genre: "",
+};
+
+// API request helper
+async function requestApi(url, options = {}) {
   const response = await fetch(url, options);
+
   let data;
 
   try {
     data = await response.json();
   } catch {
-    if (response.ok) {
-      throw new Error("The API returned an invalid response.");
-    }
+    data = null;
   }
 
   if (!response.ok) {
-    throw new Error(data?.message || `Request failed (${response.status}).`);
+    throw new Error(data?.message || `Request failed (${response.status})`);
   }
 
   return data;
 }
 
+// Fetch songs from MongoDB
 async function fetchSongs() {
   const data = await requestApi(API_URL);
+
   if (!Array.isArray(data)) {
-    throw new Error("The songs API response must be a list.");
+    throw new Error("Songs API response must be a list.");
   }
+
   return data;
 }
+
+// Get MongoDB Song ID
+const getSongId = (song) => song?._id || song?.id || song?.songId || null;
+
+// Get Authorization Header
+const getAuthHeaders = () => ({
+  Authorization: `Bearer ${localStorage.getItem("token")}`,
+});
 
 function Songs() {
   const [songs, setSongs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("All");
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingSong, setEditingSong] = useState(null);
   const [formValues, setFormValues] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+
   const [deletingSongId, setDeletingSongId] = useState(null);
 
+  // Load Songs
   const loadSongs = useCallback(async () => {
     try {
-      setSongs(await fetchSongs());
+      const data = await fetchSongs();
+
+      setSongs(data);
+      setError("");
+
       return true;
     } catch (requestError) {
       setError(
@@ -69,6 +93,7 @@ function Songs() {
           ? requestError.message
           : "Unable to load songs."
       );
+
       return false;
     } finally {
       setLoading(false);
@@ -76,12 +101,16 @@ function Songs() {
     }
   }, []);
 
+  // Initial Songs Fetch
   useEffect(() => {
     let isCurrent = true;
 
     fetchSongs()
       .then((data) => {
-        if (isCurrent) setSongs(data);
+        if (isCurrent) {
+          setSongs(data);
+          setError("");
+        }
       })
       .catch((requestError) => {
         if (isCurrent) {
@@ -93,7 +122,9 @@ function Songs() {
         }
       })
       .finally(() => {
-        if (isCurrent) setLoading(false);
+        if (isCurrent) {
+          setLoading(false);
+        }
       });
 
     return () => {
@@ -101,24 +132,23 @@ function Songs() {
     };
   }, []);
 
+  // Refresh Songs
   const refreshSongs = async () => {
     setRefreshing(true);
     setError("");
-    try {
-      return await loadSongs();
-    } finally {
-      setRefreshing(false);
-    }
+
+    return await loadSongs();
   };
 
-  const genres = useMemo(
-    () => [
+  // Genre List
+  const genres = useMemo(() => {
+    return [
       "All",
       ...new Set(songs.map((song) => song.genre).filter(Boolean)),
-    ],
-    [songs]
-  );
+    ];
+  }, [songs]);
 
+  // Search and Genre Filter
   const filteredSongs = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
 
@@ -128,7 +158,9 @@ function Songs() {
         song.artist,
         song.album,
         song.genre,
-      ].some((value) => String(value || "").toLowerCase().includes(query));
+      ].some((value) =>
+        String(value || "").toLowerCase().includes(query)
+      );
 
       const matchesGenre =
         selectedGenre === "All" || song.genre === selectedGenre;
@@ -137,6 +169,7 @@ function Songs() {
     });
   }, [songs, searchQuery, selectedGenre]);
 
+  // Clear Filters
   const clearFilters = () => {
     setSearchQuery("");
     setSelectedGenre("All");
@@ -145,6 +178,7 @@ function Songs() {
   const hasFilters =
     searchQuery.trim() !== "" || selectedGenre !== "All";
 
+  // Open Add Song Form
   const openCreateForm = () => {
     setEditingSong(null);
     setFormValues(EMPTY_FORM);
@@ -152,34 +186,62 @@ function Songs() {
     setIsFormOpen(true);
   };
 
+  // Open Edit Song Form
   const openEditForm = (song) => {
-    setEditingSong(song);
+    const songId = getSongId(song);
+
+    console.log("EDIT SONG:", song);
+    console.log("SONG ID:", songId);
+
+    if (!songId) {
+      alert("Song ID missing! Check database response.");
+      return;
+    }
+
+    setEditingSong({
+      ...song,
+      id: String(songId),
+    });
+
     setFormValues({
       title: song.title || "",
       artist: song.artist || "",
       genre: song.genre || "",
     });
+
     setFormError("");
     setIsFormOpen(true);
   };
 
+  // Close Form
   const closeForm = () => {
     if (isSaving) return;
+
     setIsFormOpen(false);
     setEditingSong(null);
     setFormError("");
   };
 
+  // Add or Update Song
   const handleSubmit = async (event) => {
     event.preventDefault();
-    const song = {
+
+    const songData = {
       title: formValues.title.trim(),
       artist: formValues.artist.trim(),
       genre: formValues.genre.trim(),
     };
 
-    if (!song.title || !song.artist || !song.genre) {
+    if (!songData.title || !songData.artist || !songData.genre) {
       setFormError("Title, artist and genre are required.");
+      return;
+    }
+
+    const songId = editingSong ? getSongId(editingSong) : null;
+
+    if (editingSong && !songId) {
+      setFormError("Invalid or missing Song ID.");
+      console.error("Editing song:", editingSong);
       return;
     }
 
@@ -189,59 +251,72 @@ function Songs() {
 
     try {
       const url = editingSong
-        ? `${API_URL}/${encodeURIComponent(editingSong.id)}`
+        ? `${API_URL}/${encodeURIComponent(songId)}`
         : API_URL;
 
-      await requestApi(url, {
-        method: editingSong ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(song),
+      const method = editingSong ? "PUT" : "POST";
+
+      console.log("REQUEST METHOD:", method);
+      console.log("REQUEST URL:", url);
+
+      const result = await requestApi(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify(songData),
       });
+
+      console.log("SONG RESPONSE:", result);
 
       setIsFormOpen(false);
       setEditingSong(null);
       setFormValues(EMPTY_FORM);
 
-      const refreshed = await refreshSongs();
-      if (!refreshed) {
-        setError((message) =>
-          `Song ${editingSong ? "updated" : "added"}, but the list could not be refreshed. ${message}`
-        );
-      }
+      await loadSongs();
     } catch (requestError) {
       setFormError(
         requestError instanceof Error
           ? requestError.message
-          : "Unable to save the song."
+          : "Unable to save song."
       );
     } finally {
       setIsSaving(false);
     }
   };
 
+  // Delete Song
   const handleDelete = async (song) => {
-    if (!window.confirm(`Delete "${song.title}"?`)) return;
+    const songId = getSongId(song);
 
-    setDeletingSongId(song.id);
+    if (!songId) {
+      alert("Song ID missing!");
+      console.error("Song:", song);
+      return;
+    }
+
+    if (!window.confirm(`Delete "${song.title}"?`)) {
+      return;
+    }
+
+    setDeletingSongId(String(songId));
     setError("");
 
     try {
-      await requestApi(
-        `${API_URL}/${encodeURIComponent(song.id)}`,
-        { method: "DELETE" }
-      );
+      await requestApi(`${API_URL}/${encodeURIComponent(songId)}`, {
+        method: "DELETE",
+        headers: {
+          ...getAuthHeaders(),
+        },
+      });
 
-      const refreshed = await refreshSongs();
-      if (!refreshed) {
-        setError((message) =>
-          `Song deleted, but the list could not be refreshed. ${message}`
-        );
-      }
+      await loadSongs();
     } catch (requestError) {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Unable to delete the song."
+          : "Unable to delete song."
       );
     } finally {
       setDeletingSongId(null);
@@ -257,6 +332,8 @@ function Songs() {
           <Topbar />
 
           <div className="space-y-8 px-5 py-8 pb-32 md:px-8">
+
+            {/* Header */}
             <section className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
               <div className="flex items-center gap-4">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-600/20 text-purple-400">
@@ -283,7 +360,7 @@ function Songs() {
                   type="button"
                   onClick={() => void refreshSongs()}
                   disabled={loading || refreshing}
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-[#17171f] px-4 py-3 text-sm text-gray-300 transition hover:border-purple-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-[#17171f] px-4 py-3 text-sm text-gray-300 transition hover:border-purple-500 hover:text-white disabled:opacity-60"
                 >
                   <RefreshCw
                     size={17}
@@ -303,25 +380,28 @@ function Songs() {
               </div>
             </section>
 
+            {/* Error */}
             {error && (
               <section
                 role="alert"
                 className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200"
               >
                 <span>{error}</span>
+
                 <button
                   type="button"
                   onClick={() => void refreshSongs()}
                   disabled={refreshing}
-                  className="font-semibold text-red-100 underline underline-offset-2 hover:text-white disabled:opacity-60"
+                  className="font-semibold underline underline-offset-2"
                 >
                   Try again
                 </button>
               </section>
             )}
 
+            {/* Search and Genre */}
             <section className="flex flex-col gap-4 md:flex-row">
-              <div className="flex flex-1 items-center gap-3 rounded-xl border border-white/10 bg-[#17171f] px-4 py-3 transition focus-within:border-purple-500">
+              <div className="flex flex-1 items-center gap-3 rounded-xl border border-white/10 bg-[#17171f] px-4 py-3 focus-within:border-purple-500">
                 <Search size={20} className="shrink-0 text-gray-400" />
 
                 <input
@@ -338,7 +418,7 @@ function Songs() {
                     type="button"
                     onClick={() => setSearchQuery("")}
                     aria-label="Clear search"
-                    className="text-gray-400 transition hover:text-white"
+                    className="text-gray-400 hover:text-white"
                   >
                     <X size={18} />
                   </button>
@@ -346,10 +426,7 @@ function Songs() {
               </div>
 
               <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-[#17171f] px-4 py-3">
-                <ListMusic
-                  size={20}
-                  className="shrink-0 text-purple-400"
-                />
+                <ListMusic size={20} className="shrink-0 text-purple-400" />
 
                 <select
                   value={selectedGenre}
@@ -370,9 +447,12 @@ function Songs() {
               </div>
             </section>
 
+            {/* Song Library */}
             <section className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <h2 className="text-xl font-semibold">Your Music Library</h2>
+                <h2 className="text-xl font-semibold">
+                  Your Music Library
+                </h2>
                 <p className="mt-1 text-sm text-gray-400">
                   Showing {filteredSongs.length} of {songs.length} songs
                 </p>
@@ -382,7 +462,7 @@ function Songs() {
                 <button
                   type="button"
                   onClick={clearFilters}
-                  className="flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-sm text-gray-300 transition hover:border-purple-500 hover:text-purple-400"
+                  className="flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-sm text-gray-300 hover:border-purple-500 hover:text-purple-400"
                 >
                   <X size={16} />
                   Clear Filters
@@ -390,6 +470,7 @@ function Songs() {
               )}
             </section>
 
+            {/* Loading */}
             {loading ? (
               <section
                 role="status"
@@ -403,20 +484,31 @@ function Songs() {
               </section>
             ) : filteredSongs.length > 0 ? (
               <section className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                {filteredSongs.map((song) => (
-                  <div key={song.id}>
-                    <SongCard
-                      song={song}
-                      onEdit={openEditForm}
-                      onDelete={handleDelete}
-                    />
-                    {deletingSongId === song.id && (
-                      <p role="status" className="mt-2 text-center text-xs text-gray-400">
-                        Deleting...
-                      </p>
-                    )}
-                  </div>
-                ))}
+                {filteredSongs.map((song) => {
+                  const songId = getSongId(song);
+
+                  return (
+                    <div key={songId || song.title}>
+                      <SongCard
+                        song={{
+                          ...song,
+                          id: songId,
+                        }}
+                        onEdit={() => openEditForm(song)}
+                        onDelete={() => handleDelete(song)}
+                      />
+
+                      {deletingSongId === String(songId) && (
+                        <p
+                          role="status"
+                          className="mt-2 text-center text-xs text-gray-400"
+                        >
+                          Deleting...
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
               </section>
             ) : (
               <section className="rounded-2xl border border-white/10 bg-[#17171f] px-6 py-16 text-center">
@@ -425,7 +517,9 @@ function Songs() {
                 </div>
 
                 <h3 className="text-xl font-semibold">
-                  {songs.length === 0 ? "No songs yet" : "No songs found"}
+                  {songs.length === 0
+                    ? "No songs yet"
+                    : "No songs found"}
                 </h3>
 
                 <p className="mt-2 text-sm text-gray-400">
@@ -438,7 +532,7 @@ function Songs() {
                   <button
                     type="button"
                     onClick={clearFilters}
-                    className="mt-5 rounded-xl bg-purple-600 px-5 py-2.5 text-sm font-semibold transition hover:bg-purple-500"
+                    className="mt-5 rounded-xl bg-purple-600 px-5 py-2.5 text-sm font-semibold hover:bg-purple-500"
                   >
                     Clear Filters
                   </button>
@@ -455,6 +549,7 @@ function Songs() {
 
       <MusicPlayer />
 
+      {/* Add/Edit Modal */}
       {isFormOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
           <section
@@ -468,16 +563,18 @@ function Songs() {
                 <h2 id="song-form-title" className="text-xl font-bold">
                   {editingSong ? "Edit Song" : "Add Song"}
                 </h2>
+
                 <p className="mt-1 text-sm text-gray-400">
                   Enter the song details below.
                 </p>
               </div>
+
               <button
                 type="button"
                 onClick={closeForm}
                 disabled={isSaving}
                 aria-label="Close form"
-                className="rounded-lg p-2 text-gray-400 transition hover:bg-white/10 hover:text-white disabled:opacity-50"
+                className="rounded-lg p-2 text-gray-400 hover:bg-white/10 hover:text-white disabled:opacity-50"
               >
                 <X size={20} />
               </button>
@@ -489,10 +586,14 @@ function Songs() {
                 ["artist", "Artist"],
                 ["genre", "Genre"],
               ].map(([field, label]) => (
-                <label key={field} className="block space-y-2">
+                <label
+                  key={field}
+                  className="block space-y-2"
+                >
                   <span className="text-sm font-medium text-gray-300">
                     {label}
                   </span>
+
                   <input
                     type="text"
                     required
@@ -503,7 +604,7 @@ function Songs() {
                         [field]: event.target.value,
                       }))
                     }
-                    className="w-full rounded-xl border border-white/10 bg-[#0b0b0f] px-4 py-3 text-white outline-none transition focus:border-purple-500"
+                    className="w-full rounded-xl border border-white/10 bg-[#0b0b0f] px-4 py-3 text-white outline-none focus:border-purple-500"
                   />
                 </label>
               ))}
@@ -519,18 +620,23 @@ function Songs() {
                   type="button"
                   onClick={closeForm}
                   disabled={isSaving}
-                  className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-gray-300 transition hover:bg-white/5 disabled:opacity-50"
+                  className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 disabled:opacity-50"
                 >
                   Cancel
                 </button>
+
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-5 py-2.5 text-sm font-semibold transition hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-5 py-2.5 text-sm font-semibold hover:bg-purple-500 disabled:opacity-60"
                 >
                   {isSaving && (
-                    <LoaderCircle size={16} className="animate-spin" />
+                    <LoaderCircle
+                      size={16}
+                      className="animate-spin"
+                    />
                   )}
+
                   {isSaving
                     ? "Saving..."
                     : editingSong

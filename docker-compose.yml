@@ -1,0 +1,17 @@
+
+services:
+  backend:
+    build: ./server
+    container_name: music-dashboard-backend
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+
+  frontend:
+    build: ./client
+    container_name: music-dashboard-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
